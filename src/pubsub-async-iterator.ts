@@ -1,5 +1,5 @@
 import { $$asyncIterator } from 'iterall';
-import { PubSubEngine } from 'graphql-subscriptions/dist/pubsub-engine';
+import { PubSubEngine } from './pubsub-engine';
 
 /**
  * A class for digesting PubSubEngine events via the new AsyncIterator interface.
@@ -32,13 +32,13 @@ import { PubSubEngine } from 'graphql-subscriptions/dist/pubsub-engine';
  */
 export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
 
-  constructor(pubsub: PubSubEngine, eventNames: string | string[]) {
+  constructor(pubsub: PubSubEngine, eventNames: string | string[], model, options) {
     this.pubsub = pubsub;
     this.pullQueue = [];
     this.pushQueue = [];
     this.listening = true;
     this.eventsArray = typeof eventNames === 'string' ? [eventNames] : eventNames;
-    this.allSubscribed = this.subscribeAll();
+    this.allSubscribed = this.subscribeAll(model, options);
   }
 
   public async next() {
@@ -96,9 +96,9 @@ export class PubSubAsyncIterator<T> implements AsyncIterator<T> {
     }
   }
 
-  private subscribeAll() {
+  private subscribeAll(model, options) {
     return Promise.all(this.eventsArray.map(
-        eventName => this.pubsub.subscribe(eventName, this.pushValue.bind(this), {}),
+        eventName => this.pubsub.subscribe(eventName, this.pushValue.bind(this), options, model),
     ));
   }
 

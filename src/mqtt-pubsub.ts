@@ -1,4 +1,4 @@
-import { PubSubEngine } from 'graphql-subscriptions/dist/pubsub-engine';
+import { PubSubEngine } from './pubsub-engine';
 import { connect, Client, ISubscriptionGrant, IClientPublishOptions, IClientSubscribeOptions } from 'mqtt';
 import { PubSubAsyncIterator } from './pubsub-async-iterator';
 
@@ -21,7 +21,7 @@ export class MQTTPubSub implements PubSubEngine {
     if (options.client) {
       this.mqttConnection = options.client;
     } else {
-      const brokerUrl = options.brokerUrl || 'mqtt://localhost';
+      const brokerUrl = options.brokerUrl || 'mqtt://localhost:3881';
       this.mqttConnection = connect(brokerUrl);
     }
 
@@ -52,12 +52,42 @@ export class MQTTPubSub implements PubSubEngine {
     return true;
   }
 
-  public subscribe(trigger: string, onMessage: Function, options?: Object): Promise<number> {
-    const triggerName: string = this.triggerTransform(trigger, options);
+  public subscribe(trigger: string, onMessage: Function, options, model): Promise<number> {
+    const me = this;
+    let triggerName: string = this.triggerTransform(trigger, options);
     const id = this.currentSubscriptionId++;
+    triggerName += id;
     this.subscriptionMap[id] = [triggerName, onMessage];
-
     let refs = this.subsRefsMap[triggerName];
+
+    const { create, update, remove } = options;
+    model.createChangeStream(options.options, function (err, stream) {
+      stream.on('data', function (data) {
+        switch (data.type) {
+          case 'create':
+            if (create) {
+              me.onNewMessage(id, 'create', data, triggerName);
+            }
+            break;
+          case 'update':
+            if (update) {
+              if(me.subscriptionMap[id]) me.onUpdateMessage(id, 'update', data, model, triggerName);
+            }
+            break;
+          case 'remove':
+            if (remove) {
+              me.onNewMessage(id, 'remove', data, triggerName);
+            }
+            break;
+          default:
+            break;
+        }
+      });
+      stream.on('end', function () { return me.unsubscribe(id); });
+      stream.on('error', function () { return me.unsubscribe(id); });
+      console.log(id);
+    });
+
     if (refs && refs.length > 0) {
       const newRefs = [...refs, id];
       this.subsRefsMap[triggerName] = newRefs;
@@ -113,8 +143,8 @@ export class MQTTPubSub implements PubSubEngine {
     delete this.subscriptionMap[subId];
   }
 
-  public asyncIterator<T>(triggers: string | string[]): AsyncIterator<T> {
-    return new PubSubAsyncIterator<T>(this, triggers);
+  public asyncIterator(model, options) {
+    return new PubSubAsyncIterator(this, model.name, model, options);
   }
 
   private onMessage(topic: string, message: Buffer) {
@@ -136,6 +166,27 @@ export class MQTTPubSub implements PubSubEngine {
       const listener = this.subscriptionMap[subId][1];
       listener(parsedMessage);
     }
+  }
+
+  private onUpdateMessage(subId, event, object, model, triggerName) {
+    const me = this;
+    model.findById(object.target).then(function (obj) {
+      const payload = {
+        subscriptionId: subId,
+        event: event,
+        object: { data: obj },
+      };
+      me.publish(triggerName, payload);
+    });
+  }
+
+  private onNewMessage(subId, event, object, triggerName) {
+    const payload = {
+      subscriptionId: subId,
+      event: event,
+      object: object,
+    };
+    this.publish(triggerName, payload);
   }
 
   private triggerTransform: TriggerTransform;

@@ -1,6 +1,6 @@
 {
   "name": "graphql-mqtt-subscriptions",
-  "version": "1.1.0",
+  "version": "2.1.0",
   "description": "A graphql-subscriptions PubSub Engine using mqtt protocol",
   "main": "dist/index.js",
   "repository": {
@@ -13,7 +13,7 @@
     "apollo",
     "subscriptions"
   ],
-  "author": "David Yahalomi",
+  "author": "David Yahalomi, Abdul Ghaffar <gmithoog@gmail.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/davidyaha/graphql-mqtt-subscriptions/issues"
