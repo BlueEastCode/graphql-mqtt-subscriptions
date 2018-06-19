@@ -66,7 +66,7 @@ export class MQTTPubSub implements PubSubEngine {
         switch (data.type) {
           case 'create':
             if (create) {
-              me.onNewMessage(id, 'create', data, triggerName);
+              if(me.subscriptionMap[id]) me.onNewMessage(id, 'create', data, triggerName);
             }
             break;
           case 'update':
@@ -76,7 +76,7 @@ export class MQTTPubSub implements PubSubEngine {
             break;
           case 'remove':
             if (remove) {
-              me.onNewMessage(id, 'remove', data, triggerName);
+              if(me.subscriptionMap[id]) me.onNewMessage(id, 'remove', data, triggerName);
             }
             break;
           default:
@@ -85,7 +85,6 @@ export class MQTTPubSub implements PubSubEngine {
       });
       stream.on('end', function () { return me.unsubscribe(id); });
       stream.on('error', function () { return me.unsubscribe(id); });
-      console.log(id);
     });
 
     if (refs && refs.length > 0) {
