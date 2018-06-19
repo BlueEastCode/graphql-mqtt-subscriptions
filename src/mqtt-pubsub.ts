@@ -1,5 +1,5 @@
 import { PubSubEngine } from './pubsub-engine';
-import { connect, Client, ISubscriptionGrant, IClientPublishOptions, IClientSubscribeOptions } from 'mqtt';
+import { connect, Client, ISubscriptionGrant } from 'mqtt';
 import { PubSubAsyncIterator } from './pubsub-async-iterator';
 
 export interface PubSubMQTTOptions {
@@ -205,6 +205,6 @@ export class MQTTPubSub implements PubSubEngine {
 export type Path = Array<string | number>;
 export type Trigger = string | Path;
 export type TriggerTransform = (trigger: Trigger, channelOptions?: Object) => string;
-export type SubscribeOptionsResolver = (trigger: Trigger, channelOptions?: Object) => Promise<IClientSubscribeOptions>;
-export type PublishOptionsResolver = (trigger: Trigger, payload: any) => Promise<IClientPublishOptions>;
+export type SubscribeOptionsResolver = (trigger: Trigger, channelOptions?: Object) => any;
+export type PublishOptionsResolver = (trigger: Trigger, payload: any) => any;
 export type SubscribeHandler = (id: number, granted: ISubscriptionGrant[]) => void;
