@@ -62,27 +62,29 @@ export class MQTTPubSub implements PubSubEngine {
 
     const { create, update, remove } = options;
     model.createChangeStream(options.options, function (err, stream) {
-      stream.on('data', function (data) {
-        switch (data.type) {
-          case 'create':
-            if (create) {
-              if(me.subscriptionMap[id]) me.onNewMessage(id, 'create', data, triggerName);
-            }
-            break;
-          case 'update':
-            if (update) {
-              if(me.subscriptionMap[id]) me.onUpdateMessage(id, 'update', data, model, triggerName);
-            }
-            break;
-          case 'remove':
-            if (remove) {
-              if(me.subscriptionMap[id]) me.onNewMessage(id, 'remove', data, triggerName);
-            }
-            break;
-          default:
-            break;
-        }
-      });
+      if (!err) {
+        stream.on('data', function (data) {
+          switch (data.type) {
+            case 'create':
+              if (create) {
+                if(me.subscriptionMap[id]) me.onNewMessage(id, 'create', data, triggerName);
+              }
+              break;
+            case 'update':
+              if (update) {
+                if(me.subscriptionMap[id]) me.onUpdateMessage(id, 'update', data, model, triggerName);
+              }
+              break;
+            case 'remove':
+              if (remove) {
+                if(me.subscriptionMap[id]) me.onNewMessage(id, 'remove', data, triggerName);
+              }
+              break;
+            default:
+              break;
+          }
+        });
+      }
       stream.on('end', function () { return me.unsubscribe(id); });
       stream.on('error', function () { return me.unsubscribe(id); });
     });
