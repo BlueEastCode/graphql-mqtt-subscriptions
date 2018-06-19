@@ -1,11 +1,11 @@
-# graphql-mqtt-subscriptions
+# @BlueEast graphql-mqtt-subscriptions
 
-This package implements the PubSubEngine Interface from the graphql-subscriptions package. 
-It allows you to connect your subscriptions manager to an MQTT enabled Pub Sub broker to support 
+This package implements the PubSubEngine Interface from the graphql-subscriptions package.
+It allows you to connect your subscriptions manager to an MQTT enabled Pub Sub broker to support
 horizontally scalable subscriptions setup.
 This package is an adapted version of my [graphql-redis-subscriptions](https://github.com/davidyaha/graphql-redis-subscriptions) package.
-   
-   
+
+
 ## Basic Usage
 
 ```javascript
@@ -22,9 +22,9 @@ const subscriptionManager = new SubscriptionManager({
 
 As the [graphql-redis-subscriptions](https://github.com/davidyaha/graphql-redis-subscriptions) package, this package support
 a trigger transform function. This trigger transform allows you to use the `channelOptions` object provided to the `SubscriptionManager`
-instance, and return trigger string which is more detailed then the regular trigger. 
+instance, and return trigger string which is more detailed then the regular trigger.
 
-First I create a simple and generic trigger transform 
+First I create a simple and generic trigger transform
 ```javascript
 const triggerTransform = (trigger, {path}) => [trigger, ...path].join('.');
 ```
@@ -72,7 +72,7 @@ This is one step towards lifting the load off of the graphql api server regardin
 
 The basic usage is great for development and you will be able to connect to any mqtt enabled server running on your system seamlessly.
 But for any production usage you should probably pass in your own configured client object;
- 
+
 ```javascript
 import { connect } from 'mqtt';
 import { MQTTPubSub } from 'graphql-mqtt-subscriptions';
@@ -90,7 +90,7 @@ You can learn more on the mqtt options object [here](https://github.com/mqttjs/M
 
 ## Changing QoS for publications or subscriptions
 
-As specified [here](https://github.com/mqttjs/MQTT.js#publish), the MQTT.js publish and subscribe functions takes an 
+As specified [here](https://github.com/mqttjs/MQTT.js#publish), the MQTT.js publish and subscribe functions takes an
 option object. This object could be defined per trigger with `publishOptions` and `subscribeOptions` resolvers.
 
 ```javascript
@@ -101,16 +101,16 @@ const triggerToQoSMap = {
 
 const pubsub = new MQTTPubSub({
   publishOptions: trigger => Promise.resolve({ qos: triggerToQoSMap[trigger] }),
-  
-  subscribeOptions: (trigger, channelOptions) => Promise.resolve({ 
-    qos: Math.max(triggerToQoSMap[trigger], channelOptions.maxQoS), 
+
+  subscribeOptions: (trigger, channelOptions) => Promise.resolve({
+    qos: Math.max(triggerToQoSMap[trigger], channelOptions.maxQoS),
   }),
 });
 ```
 
 ## Get notified on the actual QoS assigned for subscription
 
-MQTT allows the broker to assign different QoS level than the one requested by the client. 
+MQTT allows the broker to assign different QoS level than the one requested by the client.
 In order to know what QoS was defined for your subscription you can pass in a callback called `onMQTTSubscribe`
 
 ```javascript
@@ -123,7 +123,7 @@ const pubsub = new MQTTPubSub({onMQTTSubscribe});
 
 ## Change encoding used to encode and decode messages
 
-Supported encodings available [here](https://nodejs.org/api/buffer.html#buffer_buffers_and_character_encodings) 
+Supported encodings available [here](https://nodejs.org/api/buffer.html#buffer_buffers_and_character_encodings)
 
 ```javascript
 const pubsub = new MQTTPubSub({
