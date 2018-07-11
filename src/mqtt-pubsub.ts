@@ -1,6 +1,7 @@
 import { PubSubEngine } from './pubsub-engine';
-import { connect, Client, ISubscriptionGrant } from 'mqtt';
+import { connect, Client, ISubscriptionGrant, IClientSubscribeOptions, IClientPublishOptions } from 'mqtt';
 import { PubSubAsyncIterator } from './pubsub-async-iterator';
+import { QoS } from 'mqtt-packet';
 
 export interface PubSubMQTTOptions {
   brokerUrl?: string;
@@ -11,9 +12,21 @@ export interface PubSubMQTTOptions {
   onMQTTSubscribe?: (id: number, granted: ISubscriptionGrant[]) => void;
   triggerTransform?: TriggerTransform;
   parseMessageWithEncoding?: string;
+  qos?: QoS;
 }
 
 export class MQTTPubSub implements PubSubEngine {
+
+  private triggerTransform: TriggerTransform;
+  private onMQTTSubscribe: SubscribeHandler;
+  private subscribeOptionsResolver: SubscribeOptionsResolver;
+  private publishOptionsResolver: PublishOptionsResolver;
+  private mqttConnection: Client;
+
+  private subscriptionMap: { [subId: number]: [string, Function] };
+  private subsRefsMap: { [trigger: string]: Array<number> };
+  private currentSubscriptionId: number;
+  private parseMessageWithEncoding: string;
 
   constructor(options: PubSubMQTTOptions = {}) {
     this.triggerTransform = options.triggerTransform || (trigger => trigger as string);
@@ -38,8 +51,8 @@ export class MQTTPubSub implements PubSubEngine {
     this.subsRefsMap = {};
     this.currentSubscriptionId = 0;
     this.onMQTTSubscribe = options.onMQTTSubscribe || (() => null);
-    this.publishOptionsResolver = options.publishOptions || (() => Promise.resolve({}));
-    this.subscribeOptionsResolver = options.subscribeOptions || (() => Promise.resolve({}));
+    this.publishOptionsResolver = options.publishOptions || (() => Promise.resolve({qos: options.qos}));
+    this.subscribeOptionsResolver = options.subscribeOptions || (() => Promise.resolve({qos: options.qos}));
     this.parseMessageWithEncoding = options.parseMessageWithEncoding;
   }
 
@@ -67,17 +80,23 @@ export class MQTTPubSub implements PubSubEngine {
           switch (data.type) {
             case 'create':
               if (create) {
-                if(me.subscriptionMap[id]) me.onNewMessage(id, 'create', data, triggerName);
+                if (me.subscriptionMap[id]) {
+                  me.onNewMessage(id, 'create', data, triggerName);
+                }
               }
               break;
             case 'update':
               if (update) {
-                if(me.subscriptionMap[id]) me.onUpdateMessage(id, 'update', data, model, triggerName);
+                if (me.subscriptionMap[id]) {
+                  me.onUpdateMessage(id, 'update', data, model, triggerName);
+                }
               }
               break;
             case 'remove':
               if (remove) {
-                if(me.subscriptionMap[id]) me.onNewMessage(id, 'remove', data, triggerName);
+                if (me.subscriptionMap[id]) {
+                  me.onNewMessage(id, 'remove', data, triggerName);
+                }
               }
               break;
             default:
@@ -125,8 +144,9 @@ export class MQTTPubSub implements PubSubEngine {
     const [triggerName = null] = this.subscriptionMap[subId] || [];
     const refs = this.subsRefsMap[triggerName];
 
-    if (!refs)
+    if (!refs) {
       throw new Error(`There is no subscription of id "${subId}"`);
+    }
 
     let newRefs;
     if (refs.length === 1) {
@@ -135,7 +155,7 @@ export class MQTTPubSub implements PubSubEngine {
 
     } else {
       const index = refs.indexOf(subId);
-      if (index != -1) {
+      if (index !== -1) {
         newRefs = [...refs.slice(0, index), ...refs.slice(index + 1)];
       }
     }
@@ -152,8 +172,9 @@ export class MQTTPubSub implements PubSubEngine {
     const subscribers = this.subsRefsMap[topic];
 
     // Don't work for nothing..
-    if (!subscribers || !subscribers.length)
+    if (!subscribers || !subscribers.length) {
       return;
+    }
 
     const messageString = message.toString(this.parseMessageWithEncoding);
     let parsedMessage;
@@ -190,21 +211,12 @@ export class MQTTPubSub implements PubSubEngine {
     this.publish(triggerName, payload);
   }
 
-  private triggerTransform: TriggerTransform;
-  private onMQTTSubscribe: SubscribeHandler;
-  private subscribeOptionsResolver: SubscribeOptionsResolver;
-  private publishOptionsResolver: PublishOptionsResolver;
-  private mqttConnection: Client;
 
-  private subscriptionMap: { [subId: number]: [string, Function] };
-  private subsRefsMap: { [trigger: string]: Array<number> };
-  private currentSubscriptionId: number;
-  private parseMessageWithEncoding: string;
 }
 
 export type Path = Array<string | number>;
 export type Trigger = string | Path;
 export type TriggerTransform = (trigger: Trigger, channelOptions?: Object) => string;
-export type SubscribeOptionsResolver = (trigger: Trigger, channelOptions?: Object) => any;
-export type PublishOptionsResolver = (trigger: Trigger, payload: any) => any;
+export type SubscribeOptionsResolver = (trigger: Trigger, channelOptions?: Object) => Promise<IClientSubscribeOptions>;
+export type PublishOptionsResolver = (trigger: Trigger, payload: any) => Promise<IClientPublishOptions>;
 export type SubscribeHandler = (id: number, granted: ISubscriptionGrant[]) => void;
