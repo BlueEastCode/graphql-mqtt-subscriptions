@@ -14,6 +14,9 @@
     "subscriptions",
     "blueeast"
   ],
+  "files": [
+    "dist"
+  ],
   "author": "David Yahalomi, Abdul Ghaffar <gmithoog@gmail.com>",
   "license": "MIT",
   "bugs": {
