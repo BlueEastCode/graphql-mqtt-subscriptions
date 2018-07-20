@@ -1,7 +1,7 @@
 import { PubSubEngine } from './pubsub-engine';
 import { connect, Client, ISubscriptionGrant, IClientSubscribeOptions, IClientPublishOptions } from 'mqtt';
 import { PubSubAsyncIterator } from './pubsub-async-iterator';
-import { QoS } from 'mqtt-packet';
+import {QoS} from 'mqtt-packet';
 
 export interface PubSubMQTTOptions {
   brokerUrl?: string;
@@ -12,7 +12,6 @@ export interface PubSubMQTTOptions {
   onMQTTSubscribe?: (id: number, granted: ISubscriptionGrant[]) => void;
   triggerTransform?: TriggerTransform;
   parseMessageWithEncoding?: string;
-  qos?: QoS;
 }
 
 export class MQTTPubSub implements PubSubEngine {
@@ -27,6 +26,7 @@ export class MQTTPubSub implements PubSubEngine {
   private subsRefsMap: { [trigger: string]: Array<number> };
   private currentSubscriptionId: number;
   private parseMessageWithEncoding: string;
+  private myQoS: QoS;
 
   constructor(options: PubSubMQTTOptions = {}) {
     this.triggerTransform = options.triggerTransform || (trigger => trigger as string);
@@ -47,12 +47,13 @@ export class MQTTPubSub implements PubSubEngine {
       this.mqttConnection.on('error', console.error);
     }
 
+    this.myQoS = 0;
     this.subscriptionMap = {};
     this.subsRefsMap = {};
     this.currentSubscriptionId = 0;
     this.onMQTTSubscribe = options.onMQTTSubscribe || (() => null);
-    this.publishOptionsResolver = options.publishOptions || (() => Promise.resolve({qos: options.qos}));
-    this.subscribeOptionsResolver = options.subscribeOptions || (() => Promise.resolve({qos: options.qos}));
+    this.subscribeOptionsResolver = options.subscribeOptions || (() => Promise.resolve({ qos: this.myQoS}));
+    this.publishOptionsResolver = options.publishOptions || (() => Promise.resolve({  qos: this.myQoS }));
     this.parseMessageWithEncoding = options.parseMessageWithEncoding;
   }
 
