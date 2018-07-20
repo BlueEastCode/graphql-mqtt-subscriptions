@@ -1,6 +1,6 @@
 {
   "name": "@blueeast/graphql-mqtt-subscriptions",
-  "version": "2.1.4",
+  "version": "2.1.6",
   "description": "A graphql-subscriptions PubSub Engine using mqtt protocol",
   "main": "dist/index.js",
   "repository": {
@@ -35,9 +35,9 @@
     "prepublish": "npm run test"
   },
   "dependencies": {
-    "graphql-subscriptions": "^0.4.2",
+    "graphql-subscriptions": "0.4.2",
     "iterall": "^1.1.1",
-    "mqtt": "^2.3.0"
+    "mqtt": "2.18.0"
   },
   "devDependencies": {
     "@types/chai": "^3.4.34",
